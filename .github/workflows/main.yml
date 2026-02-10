@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   get-databricks-token:
@@ -22,4 +23,7 @@ jobs:
 
           ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
 
-          echo "Access token extracted successfully"
+          echo "------------------------------------"
+          echo "ACCESS TOKEN:"
+          echo "$ACCESS_TOKEN"
+          echo "------------------------------------"
