@@ -1,4 +1,4 @@
-name: Databricks SP Token + List Workspaces
+name: Databricks OAuth Token + Workspaces
 
 on:
   push:
@@ -7,41 +7,38 @@ on:
   workflow_dispatch:
 
 jobs:
-  databricks-auth-and-test:
+  databricks-auth-and-list:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate Databricks OAuth Token
-        id: get_token
+      - name: Generate OAuth Token (Service Principal)
         run: |
+          # Same as local shell
+          export CLIENT_ID="${{ secrets.DATABRICKS_CLIENT_ID }}"
+          export CLIENT_SECRET="${{ secrets.DATABRICKS_CLIENT_SECRET }}"
+
           RESPONSE=$(curl --silent --request POST \
             --url https://accounts.cloud.databricks.com/oidc/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/v1/token \
-            --user "${{ secrets.DATABRICKS_CLIENT_ID }}:${{ secrets.DATABRICKS_CLIENT_SECRET }}" \
+            --user "$CLIENT_ID:$CLIENT_SECRET" \
             --data "grant_type=client_credentials&scope=all-apis")
 
-          echo "Raw token response:"
+          echo "Token response:"
           echo "$RESPONSE"
 
           ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
 
           if [ "$ACCESS_TOKEN" = "null" ] || [ -z "$ACCESS_TOKEN" ]; then
-            echo "Failed to obtain access token"
+            echo "❌ Failed to get OAuth token"
             exit 1
           fi
 
-          echo "Token generated successfully"
-
-          # Export token for next steps
+          # Same as: export OAUTH_TOKEN=<token>
           echo "OAUTH_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
 
-      - name: List Databricks Workspaces (Accounts API)
-        run: |
-          curl --request POST \
-            --header "Authorization: Bearer $OAUTH_TOKEN" \
-            https://accounts.cloud.databricks.com/oidc/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/v1/token
-      - name: Validate token against Accounts API
+          echo "✅ OAuth token exported"
+
+      - name: List Databricks Workspaces
         run: |
           curl --request GET \
             --header "Authorization: Bearer $OAUTH_TOKEN" \
-            https://accounts.cloud.databricks.com/api/2.0/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/log-delivery
-
+            https://accounts.cloud.databricks.com/api/2.0/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/workspaces
