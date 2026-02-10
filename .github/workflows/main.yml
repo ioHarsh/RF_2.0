@@ -1,7 +1,9 @@
 name: Databricks SP Token Test
 
 on:
-  workflow_dispatch:   # manual trigger
+  push:
+    branches:
+      - main
 
 jobs:
   get-databricks-token:
