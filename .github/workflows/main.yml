@@ -1,0 +1,23 @@
+name: Databricks SP Token Test
+
+on:
+  workflow_dispatch:   # manual trigger
+
+jobs:
+  get-databricks-token:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate Databricks OAuth Token
+        run: |
+          RESPONSE=$(curl --silent --request POST \
+            --url https://accounts.cloud.databricks.com/oidc/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/v1/token \
+            --user "${{ secrets.DATABRICKS_CLIENT_ID }}:${{ secrets.DATABRICKS_CLIENT_SECRET }}" \
+            --data "grant_type=client_credentials&scope=all-apis")
+
+          echo "Raw response:"
+          echo "$RESPONSE"
+
+          ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+
+          echo "Access token extracted successfully"
