@@ -38,7 +38,7 @@ jobs:
         run: |
           curl --request GET \
             --header "Authorization: Bearer $OAUTH_TOKEN" \
-            https://accounts.cloud.databricks.com/api/2.0/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/workspaces
+            https://accounts.cloud.databricks.com/api/2.0/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/v1/token
       - name: Validate token against Accounts API
         run: |
           curl --request GET \
