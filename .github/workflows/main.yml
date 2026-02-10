@@ -1,4 +1,4 @@
-name: Databricks SP Token Test
+name: Databricks SP Token + List Workspaces
 
 on:
   push:
@@ -7,23 +7,35 @@ on:
   workflow_dispatch:
 
 jobs:
-  get-databricks-token:
+  databricks-auth-and-test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Generate Databricks OAuth Token
+        id: get_token
         run: |
           RESPONSE=$(curl --silent --request POST \
             --url https://accounts.cloud.databricks.com/oidc/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/v1/token \
             --user "${{ secrets.DATABRICKS_CLIENT_ID }}:${{ secrets.DATABRICKS_CLIENT_SECRET }}" \
             --data "grant_type=client_credentials&scope=all-apis")
 
-          echo "Raw response:"
+          echo "Raw token response:"
           echo "$RESPONSE"
 
           ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
 
-          echo "------------------------------------"
-          echo "ACCESS TOKEN:"
-          echo "$ACCESS_TOKEN"
-          echo "------------------------------------"
+          if [ "$ACCESS_TOKEN" = "null" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "Failed to obtain access token"
+            exit 1
+          fi
+
+          echo "Token generated successfully"
+
+          # Export token for next steps
+          echo "OAUTH_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
+      - name: List Databricks Workspaces (Accounts API)
+        run: |
+          curl --request GET \
+            --header "Authorization: Bearer $OAUTH_TOKEN" \
+            https://accounts.cloud.databricks.com/api/2.0/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/workspaces
