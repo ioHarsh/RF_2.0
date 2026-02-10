@@ -36,7 +36,7 @@ jobs:
 
       - name: List Databricks Workspaces (Accounts API)
         run: |
-          curl --request GET \
+          curl --request POST \
             --header "Authorization: Bearer $OAUTH_TOKEN" \
             https://accounts.cloud.databricks.com/oidc/accounts/${{ secrets.DATABRICKS_ACCOUNT_ID }}/v1/token
       - name: Validate token against Accounts API
