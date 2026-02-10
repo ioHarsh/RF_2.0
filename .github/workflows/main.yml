@@ -1,4 +1,4 @@
-name: Get OAuth Token
+name: Databricks OAuth + List Workspaces
 
 on:
   push:
@@ -6,11 +6,12 @@ on:
       - main
 
 jobs:
-  get-token:
+  databricks-auth:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Request access token
+      - name: Get OAuth access token
+        id: get_token
         env:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
@@ -21,5 +22,27 @@ jobs:
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "grant_type=client_credentials&scope=all-apis")
 
-          echo "Token response:"
+          echo "Raw token response:"
           echo "$response"
+
+          # Extract access_token
+          access_token=$(echo "$response" | jq -r '.access_token')
+
+          if [ "$access_token" = "null" ] || [ -z "$access_token" ]; then
+            echo "Failed to fetch access token"
+            exit 1
+          fi
+
+          # Mask token in logs
+          echo "::add-mask::$access_token"
+
+          # Export for next steps
+          echo "OAUTH_TOKEN=$access_token" >> $GITHUB_ENV
+
+      - name: List Databricks workspaces
+        env:
+          ACCOUNT_ID: ${{ secrets.DATABRICKS_ACCOUNT_ID }}
+        run: |
+          curl -s -X GET \
+            -H "Authorization: Bearer $OAUTH_TOKEN" \
+            "https://accounts.cloud.databricks.com/api/2.0/accounts/$ACCOUNT_ID/workspaces"
